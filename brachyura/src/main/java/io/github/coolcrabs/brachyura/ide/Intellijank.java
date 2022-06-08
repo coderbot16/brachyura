@@ -292,7 +292,6 @@ public enum Intellijank implements Ide {
                     vmParam.append(quote(arg));
                     vmParam.append(' ');
                 }
-                vmParam.append(" -cp ");
                 ArrayList<Path> cp = new ArrayList<>(run.classpath.get());
                 cp.addAll(run.resourcePaths);
                 ArrayList<IdeModule> modules = new ArrayList<>();
@@ -310,7 +309,13 @@ public enum Intellijank implements Ide {
                     cpbuilder.append(File.pathSeparatorChar);
                 }
                 cpbuilder.setLength(Math.max(cpbuilder.length() - 1, 0));
-                vmParam.append(quote(cpbuilder.toString()));
+                String cpString = cpbuilder.toString();
+
+                if (!cpString.isEmpty()) {
+                    vmParam.append(" -cp ");
+                    vmParam.append(quote(cpString));
+                }
+
                 option(w, "VM_PARAMETERS", vmParam.toString());
                 // junit start
                 // - StringBuilder runArg = new StringBuilder();
