@@ -17,11 +17,12 @@ public class IdeModule {
     public final Lazy<List<JavaJarDependency>> dependencies;
     public final List<IdeModule> dependencyModules;
     public final List<RunConfig> runConfigs;
+    public final List<TestRunConfig> testRunConfigs;
     public final List<Path> sourcePaths;
     public final List<Path> resourcePaths;
     public final int javaVersion;
 
-    IdeModule(String name, Path root, Supplier<List<JavaJarDependency>> dependencies, List<IdeModule> dependencyModules, List<RunConfigBuilder> runConfigs, List<Path> sourcePaths, List<Path> resourcePaths, int javaVersion) {
+    IdeModule(String name, Path root, Supplier<List<JavaJarDependency>> dependencies, List<IdeModule> dependencyModules, List<RunConfigBuilder> runConfigs, List<TestRunConfigBuilder> testRunConfigs, List<Path> sourcePaths, List<Path> resourcePaths, int javaVersion) {
         this.name = name;
         this.root = root;
         this.dependencies = new Lazy<>(dependencies);
@@ -29,6 +30,10 @@ public class IdeModule {
         this.runConfigs = new ArrayList<>(runConfigs.size());
         for (RunConfigBuilder b : runConfigs) {
             this.runConfigs.add(b.build(this));
+        }
+        this.testRunConfigs = new ArrayList<>(testRunConfigs.size());
+        for (TestRunConfigBuilder b : testRunConfigs) {
+            this.testRunConfigs.add(b.build(this));
         }
         this.sourcePaths = sourcePaths;
         this.resourcePaths = resourcePaths;
@@ -41,6 +46,7 @@ public class IdeModule {
         private Supplier<List<JavaJarDependency>> dependencies = Collections::emptyList;
         private List<IdeModule> dependencyModules = Collections.emptyList();
         private List<RunConfigBuilder> runConfigs = Collections.emptyList();
+        private List<TestRunConfigBuilder> testRunConfigs = Collections.emptyList();
         private List<Path> sourcePaths = Collections.emptyList();
         private List<Path> resourcePaths = Collections.emptyList();
         private int javaVersion = 8;
@@ -70,6 +76,12 @@ public class IdeModule {
 
             for (RunConfig rc : basis.runConfigs) {
                 this.runConfigs.add(new RunConfigBuilder(rc));
+            }
+
+            this.testRunConfigs = new ArrayList<>(basis.testRunConfigs.size());
+
+            for (TestRunConfig rc : basis.testRunConfigs) {
+                this.testRunConfigs.add(new TestRunConfigBuilder(rc));
             }
 
             this.sourcePaths = basis.sourcePaths;
@@ -122,6 +134,16 @@ public class IdeModule {
             return this;
         }
 
+        public IdeModuleBuilder testRunConfigs(List<TestRunConfigBuilder> testRunConfigs) {
+            this.testRunConfigs = testRunConfigs;
+            return this;
+        }
+
+        public IdeModuleBuilder testRunConfigs(TestRunConfigBuilder... testRunConfigs) {
+            this.testRunConfigs = Arrays.asList(testRunConfigs);
+            return this;
+        }
+
         public IdeModuleBuilder sourcePaths(List<Path> sourcePaths) {
             this.sourcePaths = sourcePaths;
             return this;
@@ -156,7 +178,7 @@ public class IdeModule {
         public IdeModule build() {
             Objects.requireNonNull(name, "IdeModule missing name");
             Objects.requireNonNull(root, "IdeModule missing root");
-            return new IdeModule(name, root, dependencies, dependencyModules, runConfigs, sourcePaths, resourcePaths, javaVersion);
+            return new IdeModule(name, root, dependencies, dependencyModules, runConfigs, testRunConfigs, sourcePaths, resourcePaths, javaVersion);
         }
     }
 
@@ -298,6 +320,128 @@ public class IdeModule {
             Objects.requireNonNull(mainClass, "Null mainClass");
             Objects.requireNonNull(cwd, "Null cwd");
             return project.new RunConfig(name, mainClass, cwd, vmArgs, args, classpath, additionalModulesClasspath, resourcePaths);
+        }
+    }
+
+    public class TestRunConfig {
+        public final String name;
+        public final String testPackage;
+        public final Path cwd; // Make sure this exists
+        public final Lazy<List<String>> vmArgs;
+        public final Lazy<List<Path>> classpath;
+        public final List<IdeModule> additionalModulesClasspath;
+        public final List<Path> resourcePaths;
+
+        TestRunConfig(String name, String testPackage, Path cwd, Supplier<List<String>> vmArgs, Supplier<List<Path>> classpath, List<IdeModule> additionalModulesClasspath, List<Path> resourcePaths) {
+            this.name = name;
+            this.testPackage = testPackage;
+            this.cwd = cwd;
+            this.vmArgs = new Lazy<>(vmArgs);
+            this.classpath = new Lazy<>(classpath);
+            this.additionalModulesClasspath = additionalModulesClasspath;
+            this.resourcePaths = resourcePaths;
+        }
+    }
+
+    public static class TestRunConfigBuilder {
+        private String name;
+        private String testPackage;
+        private Path cwd;
+        private Supplier<List<String>> vmArgs = Collections::emptyList;
+        private Supplier<List<Path>> classpath = Collections::emptyList;
+        private List<IdeModule> additionalModulesClasspath = Collections.emptyList();
+        private List<Path> resourcePaths = Collections.emptyList();
+
+        /**
+         * Creates a new TestRunConfigBuilder filled in with default values.
+         */
+        public TestRunConfigBuilder() {
+
+        }
+
+        /**
+         * Creates a new TestRunConfigBuilder with values filled in from the given existing TestRunConfig object.
+         */
+        public TestRunConfigBuilder(TestRunConfig basis) {
+            this.name = basis.name;
+            this.testPackage = basis.testPackage;
+            this.cwd = basis.cwd;
+            this.vmArgs = basis.vmArgs;
+            this.classpath = basis.classpath;
+            this.additionalModulesClasspath = basis.additionalModulesClasspath;
+            this.resourcePaths = basis.resourcePaths;
+        }
+
+        public TestRunConfigBuilder name(String name) {
+            this.name = name;
+            return this;
+        }
+
+        public TestRunConfigBuilder testPackage(String testPackage) {
+            this.testPackage = testPackage;
+            return this;
+        }
+
+        public TestRunConfigBuilder cwd(Path cwd) {
+            this.cwd = cwd;
+            return this;
+        }
+
+        public TestRunConfigBuilder vmArgs(Supplier<List<String>> vmArgs) {
+            this.vmArgs = vmArgs;
+            return this;
+        }
+
+        public TestRunConfigBuilder vmArgs(List<String> vmArgs) {
+            this.vmArgs = () -> vmArgs;
+            return this;
+        }
+
+        public TestRunConfigBuilder vmArgs(String... vmArgs) {
+            this.vmArgs = () -> Arrays.asList(vmArgs);
+            return this;
+        }
+
+        public TestRunConfigBuilder classpath(Supplier<List<Path>> classpath) {
+            this.classpath = classpath;
+            return this;
+        }
+
+        public TestRunConfigBuilder classpath(List<Path> classpath) {
+            this.classpath = () -> classpath;
+            return this;
+        }
+
+        public TestRunConfigBuilder classpath(Path... classpath) {
+            this.classpath = () -> Arrays.asList(classpath);
+            return this;
+        }
+
+        public TestRunConfigBuilder additionalModulesClasspath(List<IdeModule> additionalModulesClasspath) {
+            this.additionalModulesClasspath = additionalModulesClasspath;
+            return this;
+        }
+
+        public TestRunConfigBuilder additionalModulesClasspath(IdeModule... additionalModulesClasspath) {
+            this.additionalModulesClasspath = Arrays.asList(additionalModulesClasspath);
+            return this;
+        }
+
+        public TestRunConfigBuilder resourcePaths(List<Path> resourcePaths) {
+            this.resourcePaths = resourcePaths;
+            return this;
+        }
+
+        public TestRunConfigBuilder resourcePaths(Path... resourcePaths) {
+            this.resourcePaths = Arrays.asList(resourcePaths);
+            return this;
+        }
+
+        TestRunConfig build(IdeModule project) {
+            Objects.requireNonNull(name, "Null name");
+            Objects.requireNonNull(testPackage, "Null testPackage");
+            Objects.requireNonNull(cwd, "Null cwd");
+            return project.new TestRunConfig(name, testPackage, cwd, vmArgs, classpath, additionalModulesClasspath, resourcePaths);
         }
     }
 }

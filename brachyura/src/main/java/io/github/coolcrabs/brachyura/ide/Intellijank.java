@@ -16,6 +16,7 @@ import javax.xml.stream.XMLStreamException;
 
 import io.github.coolcrabs.brachyura.dependency.JavaJarDependency;
 import io.github.coolcrabs.brachyura.ide.IdeModule.RunConfig;
+import io.github.coolcrabs.brachyura.ide.IdeModule.TestRunConfig;
 import io.github.coolcrabs.brachyura.util.JvmUtil;
 import io.github.coolcrabs.brachyura.util.PathUtil;
 import io.github.coolcrabs.brachyura.util.Util;
@@ -193,6 +194,7 @@ public enum Intellijank implements Ide {
     void writeRunConfigurations(Path projectDir, IdeModule ideProject) throws IOException, XMLStreamException {
         Path ideaPath = projectDir.resolve(".idea");
         Path runConfigPath = PathUtil.resolveAndCreateDir(ideaPath, "runConfigurations");
+
         for (RunConfig run : ideProject.runConfigs) {
             String rcname = ideProject.name + " - " + run.name;
             try (FormattedXMLStreamWriter w = XmlUtil.newStreamWriter(Files.newBufferedWriter(runConfigPath.resolve(rcname + ".xml")))) {
@@ -246,6 +248,79 @@ public enum Intellijank implements Ide {
                     w.unindent();
                     w.newline();
                     w.writeEndElement();
+                w.unindent();
+                w.newline();
+                w.writeEndElement();
+                w.writeEndDocument();
+            }
+        }
+
+        // TODO (coderbot): This is mostly copied from the runConfigs loop.
+        //  Ideally this should be de-duplicated, but I'm not sure how best to do that. Maybe a common RunConfig class
+        //  with AppRunConfig and TestRunConfig?
+        for (TestRunConfig run : ideProject.testRunConfigs) {
+            String rcname = ideProject.name + " - " + run.name;
+            try (FormattedXMLStreamWriter w = XmlUtil.newStreamWriter(Files.newBufferedWriter(runConfigPath.resolve(rcname + ".xml")))) {
+                w.writeStartDocument("UTF-8", "1.0");
+                w.newline();
+                w.writeStartElement("component");
+                w.writeAttribute("name", "ProjectRunConfigurationManager");
+                w.indent();
+                w.newline();
+                w.writeStartElement("configuration");
+                w.writeAttribute("default", "false");
+                w.writeAttribute("name", rcname);
+                // junit start
+                // - w.writeAttribute("type", "Application");
+                w.writeAttribute("type", "JUnit");
+                // junit end
+                w.writeAttribute("nameIsGenerated", "false"); // Yeet
+                w.indent();
+                // junit start
+                // - option(w, "MAIN_CLASS_NAME", run.mainClass);
+                option(w, "PACKAGE_NAME", run.testPackage);
+                w.newline();
+                option(w, "TEST_OBJECT", "package");
+                w.newline();
+                // junit end
+                w.writeEmptyElement("module");
+                w.writeAttribute("name", ideProject.name);
+                option(w, "name", "main");
+                option(w, "WORKING_DIRECTORY", run.cwd.toString());
+                StringBuilder vmParam = new StringBuilder();
+                for (String arg : run.vmArgs.get()) {
+                    vmParam.append(quote(arg));
+                    vmParam.append(' ');
+                }
+                vmParam.append(" -cp ");
+                ArrayList<Path> cp = new ArrayList<>(run.classpath.get());
+                cp.addAll(run.resourcePaths);
+                ArrayList<IdeModule> modules = new ArrayList<>();
+                modules.add(ideProject);
+                modules.addAll(run.additionalModulesClasspath);
+                for (IdeModule m : modules) {
+                    cp.add(projectDir.resolve(".brachyura").resolve("ideaout").resolve("production").resolve(m.name)); // ???
+                }
+                StringBuilder cpbuilder = new StringBuilder();
+                for (Path cp0 : cp) {
+                    cpbuilder.append(cp0.toString());
+                    cpbuilder.append(File.pathSeparatorChar);
+                }
+                cpbuilder.setLength(Math.max(cpbuilder.length() - 1, 0));
+                vmParam.append(quote(cpbuilder.toString()));
+                option(w, "VM_PARAMETERS", vmParam.toString());
+                // junit start
+                // - StringBuilder runArg = new StringBuilder();
+                // - for (String arg : run.args.get()) {
+                // -     runArg.append(quote(arg));
+                // -     runArg.append(' ');
+                // - }
+                // - runArg.setLength(Math.max(runArg.length() - 1, 0));
+                // - option(w, "PROGRAM_PARAMETERS", runArg.toString());
+                // junit end
+                w.unindent();
+                w.newline();
+                w.writeEndElement();
                 w.unindent();
                 w.newline();
                 w.writeEndElement();
