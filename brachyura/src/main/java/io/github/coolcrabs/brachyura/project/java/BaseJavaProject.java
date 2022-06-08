@@ -55,7 +55,24 @@ public abstract class BaseJavaProject extends Project {
             }
         }
     }
-    
+
+    public void runTestRunConfig(IdeModule ideProject, IdeModule.TestRunConfig trc) {
+        IdeModule.RunConfigBuilder builder = new IdeModule.RunConfigBuilder();
+
+        builder
+            .name(trc.name)
+            .cwd(trc.cwd)
+            // TODO: We are assuming that JUnit is already on the classpath. Not a good assumption!
+            .mainClass("org.junit.platform.console.ConsoleLauncher")
+            .vmArgs(trc.vmArgs)
+            .classpath(trc.classpath)
+            .additionalModulesClasspath(trc.additionalModulesClasspath)
+            .resourcePaths(trc.resourcePaths)
+            .args("--select-package=" + trc.testPackage);
+
+        runRunConfig(ideProject, builder.build(ideProject));
+    }
+
     public void runRunConfig(IdeModule ideProject, IdeModule.RunConfig rc) {
         try {
             LinkedHashSet<IdeModule> toCompile = new LinkedHashSet<>();

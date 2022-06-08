@@ -315,7 +315,7 @@ public class IdeModule {
             return this;
         }
 
-        RunConfig build(IdeModule project) {
+        public RunConfig build(IdeModule project) {
             Objects.requireNonNull(name, "Null name");
             Objects.requireNonNull(mainClass, "Null mainClass");
             Objects.requireNonNull(cwd, "Null cwd");
