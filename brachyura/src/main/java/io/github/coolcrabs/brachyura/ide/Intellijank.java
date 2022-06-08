@@ -298,9 +298,12 @@ public enum Intellijank implements Ide {
                 ArrayList<IdeModule> modules = new ArrayList<>();
                 modules.add(ideProject);
                 modules.addAll(run.additionalModulesClasspath);
-                for (IdeModule m : modules) {
+                // junit start
+                // coderbot: ??????????????? what is this doing
+                /*for (IdeModule m : modules) {
                     cp.add(projectDir.resolve(".brachyura").resolve("ideaout").resolve("production").resolve(m.name)); // ???
-                }
+                }*/
+                // junit end
                 StringBuilder cpbuilder = new StringBuilder();
                 for (Path cp0 : cp) {
                     cpbuilder.append(cp0.toString());

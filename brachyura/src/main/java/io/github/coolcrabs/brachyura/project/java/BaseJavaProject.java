@@ -53,6 +53,11 @@ public abstract class BaseJavaProject extends Project {
                 String tname = ms.length == 1 ? "run" + rc.name.replace(" ", "") : m.name.replace(" ", "") + ":run" + rc.name.replace(" ", "");
                 p.accept(Task.of(tname, () -> runRunConfig(m, rc)));
             }
+
+            for (IdeModule.TestRunConfig trc : m.testRunConfigs) {
+                String tname = ms.length == 1 ? "run" + trc.name.replace(" ", "") : m.name.replace(" ", "") + ":run" + trc.name.replace(" ", "");
+                p.accept(Task.of(tname, () -> runTestRunConfig(m, trc)));
+            }
         }
     }
 
