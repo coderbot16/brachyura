@@ -44,7 +44,39 @@ public class IdeModule {
         private List<Path> sourcePaths = Collections.emptyList();
         private List<Path> resourcePaths = Collections.emptyList();
         private int javaVersion = 8;
-        
+
+        /**
+         * Creates a new IdeModuleBuilder with default values.
+         */
+        public IdeModuleBuilder() {
+            // no-op
+        }
+
+        /**
+         * Creates a new IdeModuleBuilder filled in with values from the given built IdeModule.
+         *
+         * <p>This is useful if you have an IdeModule object already built by another piece of code, but want
+         *    to extend or modify it in some way, such as by adding a run config or changing the java version.</p>
+         *
+         * @param basis The existing IdeModule to take values from
+         */
+        public IdeModuleBuilder(IdeModule basis) {
+            this.name = basis.name;
+            this.root = basis.root;
+            this.dependencies = basis.dependencies;
+            this.dependencyModules = basis.dependencyModules;
+
+            this.runConfigs = new ArrayList<>(basis.runConfigs.size());
+
+            for (RunConfig rc : basis.runConfigs) {
+                this.runConfigs.add(new RunConfigBuilder(rc));
+            }
+
+            this.sourcePaths = basis.sourcePaths;
+            this.resourcePaths = basis.resourcePaths;
+            this.javaVersion = basis.javaVersion;
+        }
+
         public IdeModuleBuilder name(String name) {
             this.name = name;
             return this;
@@ -159,6 +191,27 @@ public class IdeModule {
         private Supplier<List<Path>> classpath = Collections::emptyList;
         private List<IdeModule> additionalModulesClasspath = Collections.emptyList();
         private List<Path> resourcePaths = Collections.emptyList();
+
+        /**
+         * Creates a new RunConfigBuilder filled in with default values.
+         */
+        public RunConfigBuilder() {
+
+        }
+
+        /**
+         * Creates a new RunConfigBuilder with values filled in from the given existing RunConfig object.
+         */
+        public RunConfigBuilder(RunConfig basis) {
+            this.name = basis.name;
+            this.mainClass = basis.mainClass;
+            this.cwd = basis.cwd;
+            this.vmArgs = basis.vmArgs;
+            this.args = basis.args;
+            this.classpath = basis.classpath;
+            this.additionalModulesClasspath = basis.additionalModulesClasspath;
+            this.resourcePaths = basis.resourcePaths;
+        }
 
         public RunConfigBuilder name(String name) {
             this.name = name;
